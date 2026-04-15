@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:wakeproof/screens/dashboard_screen.dart';
+import 'package:wakeproof/features/alarm/data/models/alarm_model.dart';
+import 'package:wakeproof/features/alarm/data/alarm_local_source.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Hive.initFlutter();
+  Hive.registerAdapter(AlarmModelAdapter());
+  await Hive.openBox<AlarmModel>(AlarmLocalSource.boxName);
+  
   runApp(const WakeProofApp());
 }
 

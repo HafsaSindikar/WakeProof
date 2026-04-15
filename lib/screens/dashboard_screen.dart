@@ -1,16 +1,7 @@
 import 'package:flutter/material.dart';
-
-class AlarmItem {
-  final TimeOfDay time;
-  final String label;
-  final bool isEnabled;
-
-  AlarmItem({
-    required this.time,
-    this.label = 'Wake Up',
-    this.isEnabled = true,
-  });
-}
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:wakeproof/features/alarm/data/alarm_local_source.dart';
+import 'package:wakeproof/features/alarm/data/models/alarm_model.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,7 +11,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final List<AlarmItem> _alarms = [];
+  final AlarmLocalSource _alarmSource = AlarmLocalSource();
 
   Future<void> _addAlarm() async {
     final TimeOfDay? pickedTime = await showTimePicker(
@@ -35,34 +26,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     if (pickedTime != null) {
-      setState(() {
-        _alarms.add(AlarmItem(time: pickedTime));
-        // Sort alarms by time
-        _alarms.sort((a, b) {
-          if (a.time.hour != b.time.hour) {
-            return a.time.hour.compareTo(b.time.hour);
-          }
-          return a.time.minute.compareTo(b.time.minute);
-        });
-      });
+      final now = DateTime.now();
+      var alarmTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+      
+      if (alarmTime.isBefore(now)) {
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      }
+      
+      await _alarmSource.addAlarm(alarmTime);
     }
   }
 
-  void _toggleAlarm(int index, bool value) {
-    setState(() {
-      final alarm = _alarms[index];
-      _alarms[index] = AlarmItem(
-        time: alarm.time,
-        label: alarm.label,
-        isEnabled: value,
-      );
-    });
+  void _toggleAlarm(String id) {
+    _alarmSource.toggleAlarm(id);
   }
 
-  void _deleteAlarm(int index) {
-    setState(() {
-      _alarms.removeAt(index);
-    });
+  void _deleteAlarm(String id) {
+    _alarmSource.deleteAlarm(id);
   }
 
   @override
@@ -77,9 +63,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
-      body: _alarms.isEmpty
-          ? Center(
-              child: Column(
+      body: ValueListenableBuilder<Box<AlarmModel>>(
+        valueListenable: _alarmSource.listenable(),
+        builder: (context, box, child) {
+          final alarms = box.values.toList();
+          alarms.sort((a, b) => a.time.compareTo(b.time));
+
+          return alarms.isEmpty
+              ? Center(
+                  child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
@@ -110,9 +102,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: _alarms.length,
+              itemCount: alarms.length,
               itemBuilder: (context, index) {
-                final alarm = _alarms[index];
+                final alarm = alarms[index];
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -136,7 +128,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(32),
-                      onTap: () => _toggleAlarm(index, !alarm.isEnabled),
+                      onTap: () => _toggleAlarm(alarm.id),
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Row(
@@ -146,7 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  alarm.time.format(context),
+                                  TimeOfDay.fromDateTime(alarm.time).format(context),
                                   style: TextStyle(
                                     fontSize: 44,
                                     fontWeight: FontWeight.w300,
@@ -178,11 +170,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ? colorScheme.onPrimaryContainer.withOpacity(0.6)
                                       : colorScheme.onSurface.withOpacity(0.4),
                                   tooltip: 'Delete',
-                                  onPressed: () => _deleteAlarm(index),
+                                  onPressed: () => _deleteAlarm(alarm.id),
                                 ),
                                 Switch(
                                   value: alarm.isEnabled,
-                                  onChanged: (value) => _toggleAlarm(index, value),
+                                  onChanged: (value) => _toggleAlarm(alarm.id),
                                 ),
                               ],
                             ),
@@ -193,7 +185,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 );
               },
-            ),
+            );
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addAlarm,
         icon: const Icon(Icons.add),
