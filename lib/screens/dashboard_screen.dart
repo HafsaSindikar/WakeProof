@@ -7,7 +7,7 @@ class AlarmItem {
 
   AlarmItem({
     required this.time,
-    this.label = 'Alarm',
+    this.label = 'Wake Up',
     this.isEnabled = true,
   });
 }
@@ -121,7 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(24),
-                    onLongPress: () => _deleteAlarm(index),
+                    onTap: () {},
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Row(
@@ -153,9 +153,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                          Switch(
-                            value: alarm.isEnabled,
-                            onChanged: (value) => _toggleAlarm(index, value),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                color: colorScheme.error,
+                                tooltip: 'Delete Alarm',
+                                onPressed: () => _deleteAlarm(index),
+                              ),
+                              Switch(
+                                value: alarm.isEnabled,
+                                onChanged: (value) => _toggleAlarm(index, value),
+                              ),
+                            ],
                           ),
                         ],
                       ),
