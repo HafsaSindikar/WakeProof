@@ -89,19 +89,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No alarms set',
+                    'No alarms yet',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.5,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tap the + button to add one',
+                    'Tap + to start your day right',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      fontSize: 16,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -112,63 +113,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
               itemCount: _alarms.length,
               itemBuilder: (context, index) {
                 final alarm = _alarms[index];
-                return Card(
-                  elevation: 0,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: alarm.isEnabled
+                        ? colorScheme.primaryContainer
+                        : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: alarm.isEnabled
+                        ? [
+                            BoxShadow(
+                              color: colorScheme.primary.withOpacity(0.05),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () {},
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                alarm.time.format(context),
-                                style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w300,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(32),
+                      onTap: () => _toggleAlarm(index, !alarm.isEnabled),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  alarm.time.format(context),
+                                  style: TextStyle(
+                                    fontSize: 44,
+                                    fontWeight: FontWeight.w300,
+                                    letterSpacing: -1.5,
+                                    color: alarm.isEnabled
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurface.withOpacity(0.4),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  alarm.label,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: alarm.isEnabled
+                                        ? colorScheme.onPrimaryContainer.withOpacity(0.8)
+                                        : colorScheme.onSurface.withOpacity(0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded),
                                   color: alarm.isEnabled
-                                      ? colorScheme.onSurface
+                                      ? colorScheme.onPrimaryContainer.withOpacity(0.6)
                                       : colorScheme.onSurface.withOpacity(0.4),
+                                  tooltip: 'Delete',
+                                  onPressed: () => _deleteAlarm(index),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                alarm.label,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: alarm.isEnabled
-                                      ? colorScheme.onSurfaceVariant
-                                      : colorScheme.onSurfaceVariant.withOpacity(0.4),
+                                Switch(
+                                  value: alarm.isEnabled,
+                                  onChanged: (value) => _toggleAlarm(index, value),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                color: colorScheme.error,
-                                tooltip: 'Delete Alarm',
-                                onPressed: () => _deleteAlarm(index),
-                              ),
-                              Switch(
-                                value: alarm.isEnabled,
-                                onChanged: (value) => _toggleAlarm(index, value),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
