@@ -36,4 +36,12 @@ class AlarmLocalSource {
       await alarm.save();
     }
   }
+
+  Future<void> setAlarmEnabled(String id, bool isEnabled) async {
+    final alarm = _box.get(id);
+    if (alarm != null) {
+      alarm.isEnabled = isEnabled;
+      await alarm.save();
+    }
+  }
 }

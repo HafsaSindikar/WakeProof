@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:wakeproof/features/alarm/data/alarm_local_source.dart';
 import 'package:wakeproof/features/alarm/data/models/alarm_model.dart';
+import 'package:wakeproof/screens/alarm_ringing_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,6 +14,50 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AlarmLocalSource _alarmSource = AlarmLocalSource();
+  Timer? _alarmCheckTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAlarmChecker();
+  }
+
+  @override
+  void dispose() {
+    _alarmCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAlarmChecker() {
+    // Check every second to see if an alarm should trigger
+    _alarmCheckTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      final alarms = _alarmSource.getAlarms().where((a) => a.isEnabled).toList();
+      final now = DateTime.now();
+
+      for (var alarm in alarms) {
+        // Trigger if it's the exact minute (and same date)
+        if (alarm.time.year == now.year &&
+            alarm.time.month == now.month &&
+            alarm.time.day == now.day &&
+            alarm.time.hour == now.hour &&
+            alarm.time.minute == now.minute) {
+          
+          // Disable alarm explicitly so it doesn't trigger repeatedly
+          await _alarmSource.setAlarmEnabled(alarm.id, false);
+          
+          // Navigate to the ringing screen
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AlarmRingingScreen(alarm: alarm),
+              ),
+            );
+          }
+          break; // Only trigger one alarm at a time
+        }
+      }
+    });
+  }
 
   Future<void> _addAlarm() async {
     final TimeOfDay? pickedTime = await showTimePicker(
